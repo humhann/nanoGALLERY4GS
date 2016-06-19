@@ -267,7 +267,7 @@ function nanoGallery_header() {
     //$tmpContent.='<script type="text/javascript" src="'.$SITEURL.'/plugins/nanogallery3/js/third.party/jquery-jsonp/jquery.jsonp.js"></script>'."\n";
     $tmpContent.='<script type="text/javascript" src="'.$SITEURL.'/plugins/nanogallery3/js/third.party/transit/jquery.transit.min.js"></script>'."\n";
     $tmpContent.='<script type="text/javascript" src="'.$SITEURL.'/plugins/nanogallery3/js/third.party/imagesloaded/imagesloaded.pkgd.min.js"></script>'."\n";
-    $tmpContent.='<script type="text/javascript" src="'.$SITEURL.'/plugins/nanogallery3/js/jquery.nanogallery.min.js"></script>'."\n";
+    $tmpContent.='<script type="text/javascript" src="'.$SITEURL.'/plugins/nanogallery3/js/jquery.nanogallery.js"></script>'."\n";
 	
 
 	for( $i=0; $i<count($mp->_nanoGallerySettings); $i++ ) {

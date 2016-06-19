@@ -59,7 +59,7 @@ Issue fixed by switching the Google+/Picasa requests to HTTPS.
       viewerDisplayLogo:false,
       viewerScrollBarHidden:true,
       imageTransition:'default',
-      viewerToolbar:{position:'bottom', style:'innerImage'},
+      viewerToolbar:{position:'top', style:'innerImage'},
       thumbnailWidth:230,
       thumbnailHeight:154,
       thumbnailHoverEffect:null,
@@ -1851,6 +1851,22 @@ function nanoGALLERY() {
       }
       
       var imgUrl=data.media$group.media$content[0].url;
+
+      // video
+      var videoUrl = null;
+      try {
+        // low quality
+        if (data.media$group.media$content[1].medium == "video") {
+          videoUrl = data.media$group.media$content[1].url;
+        }
+
+        // medium quality
+        if (data.media$group.media$content[2].medium == "video") {
+          videoUrl = data.media$group.media$content[2].url;
+        }
+      }
+      catch (e) {}
+      //////////////
       
       if( gO.thumbnailLabel.title != '' ) {
         itemTitle=GetImageTitle(unescape(unescape(unescape(unescape(imgUrl)))));
@@ -1903,7 +1919,7 @@ function nanoGALLERY() {
             src=s+'h'+window.screen.height+'/'+filename;
           }
         }
-        var newItem= NGAddItem(itemTitle, itemThumbURL, src, itemDescription, '', kind, tags, itemID, albumID );
+        var newItem= NGAddItem(itemTitle, itemThumbURL, src, itemDescription, '', kind, tags, itemID, albumID, videoUrl);
         newItem.imageNumber=nb;
         if( kind == 'album' ) {
           newItem.author=data.author[0].name.$t;
@@ -2162,7 +2178,7 @@ function nanoGALLERY() {
   // ##### NGITEMS MANIPULATION #####
   // ################################
   
-  function NGAddItem(title, thumbSrc, imageSrc, description, destinationURL, kind, tags, ID, albumID ) {
+  function NGAddItem(title, thumbSrc, imageSrc, description, destinationURL, kind, tags, ID, albumID, videoSrc) {
     var newObj=new NGItems(title,ID);
     newObj.thumbsrc=thumbSrc;
     newObj.src=imageSrc;
@@ -2170,6 +2186,7 @@ function nanoGALLERY() {
     newObj.destinationURL=destinationURL;
     newObj.kind=kind;
     newObj.albumID=albumID;
+    newObj.videoSrc=videoSrc;
     if( tags.length == 0 ) {
       newObj.tags=null;
     }
@@ -4472,7 +4489,7 @@ function nanoGALLERY() {
     if( g_supportFullscreenAPI ) {
       fs='<div class="setFullscreenButton fullscreenButton"></div>';
     }
-    $g_containerViewerToolbar=jQuery('<div class="toolbarContainer" style="visibility:hidden;"><div class="toolbar"><div class="previousButton"></div><div class="pageCounter"></div><div class="nextButton"></div><div class="playButton playPauseButton"></div>'+fs+'<div class="closeButton"></div><div class="label"><div class="title" itemprop="name"></div><div class="description" itemprop="description"></div></div></div>').appendTo($g_containerViewer);
+    $g_containerViewerToolbar=jQuery('<div class="toolbarContainer" style="visibility:hidden;"><div class="toolbar"><div class="previousButton"></div><div class="pageCounter"></div><div class="nextButton"></div><div class="playButton playPauseButton" style="display: none"></div>'+fs+'<div class="closeButton"></div><div class="label"><div class="title" itemprop="name"></div><div class="description" itemprop="description"></div></div></div>').appendTo($g_containerViewer);
     if( gO.viewerDisplayLogo ) {
       $g_containerViewerLogo=jQuery('<div class="nanoLogo"></div>').appendTo($g_containerViewer);
     }
@@ -4917,6 +4934,14 @@ return;
         $g_ViewerImageCurrent.css({'opacity':0, 'left':'0', visibility: 'visible'}).attr('src',g_ngItems[imageIdx].responsiveURL());
         //$g_ViewerImageCurrent.css({'opacity':0, 'right':'0', visibility: 'visible'}).attr('src',g_ngItems[imageIdx].responsiveURL());
 
+        // video
+        $g_ViewerImageCurrent.data('video', null);
+
+        if (g_ngItems[imageIdx].videoSrc) {
+          $g_ViewerImageCurrent.data('video', g_ngItems[imageIdx].videoSrc);
+        }
+        /////////
+
         jQuery.when(
           $g_ViewerImageCurrent.animate({'opacity': 1 }, 300)
         ).done(function () {
@@ -4935,6 +4960,21 @@ return;
 
     $g_ViewerImageCurrent.off("click");
     $g_ViewerImageCurrent.removeClass('imgCurrent');
+
+    // video
+    $g_ViewerImageCurrent.parent().find('video').each(function(){
+
+      this.pause();
+
+      $(this).find('source').each(function() {
+        this.src = "";
+      });
+
+      this.src = "";
+      this.load();
+      $(this).remove();
+    });
+    //////////
   
     var $tmp=$g_ViewerImageCurrent;
     switch( displayType ) {
@@ -4959,8 +4999,43 @@ return;
     $g_ViewerImagePrevious.css({'opacity':0, 'left':'0', visibility: 'hidden'}).attr('src',g_ngItems[GetPreviousImageIdx(imageIdx)].responsiveURL());
     //$g_ViewerImagePrevious.css({'opacity':0, 'right':'0', 'left':'0', visibility: 'hidden'}).attr('src',g_ngItems[GetPreviousImageIdx(imageIdx)].responsiveURL());
 
+    // video
+    $g_ViewerImageNext.data('video', null);
+    $g_ViewerImagePrevious.data('video', null);
+
+    if (g_ngItems[GetNextImageIdx(imageIdx)].videoSrc) {
+      $g_ViewerImageNext.data('video', g_ngItems[GetNextImageIdx(imageIdx)].videoSrc);
+    }
+
+    if (g_ngItems[GetPreviousImageIdx(imageIdx)].videoSrc) {
+      $g_ViewerImagePrevious.data('video', g_ngItems[GetPreviousImageIdx(imageIdx)].videoSrc);
+    }
+    ///////////
+
     $g_ViewerImageCurrent.on("click",function(e){
       e.stopPropagation();
+
+      // video
+      var $element = $(e.target);
+      var videoSrc = $element.data('video');
+
+      console.log($element);
+      console.log(videoSrc);
+
+      if (videoSrc) {
+
+        if ($g_ViewerImageCurrent.parent().find('video.current-video').length < 1) {
+          $element.after('<video class="current-video" style="' + $(e.target).attr('style') + '" controls><source src="' + videoSrc + '" type="video/mp4"></video>');
+          $g_ViewerImageCurrent.css({'visibility': 'hidden'});
+        }
+
+        // cannot use autoplay tag, breaks other things
+        $element.parent().find('video').get(0).play();
+
+        return;
+      }
+      ///////////
+
       if( e.pageX < (jQuery(window).width()/2) ) {
         DisplayPreviousImage();
       }
